@@ -1,4 +1,4 @@
-# KLib - Library for TS/JS
+# Library for Typescript/Javascript
 
 [![npm version](https://img.shields.io/npm/v/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
 [![npm downloads](https://img.shields.io/npm/d18m/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
