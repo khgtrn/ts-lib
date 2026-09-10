@@ -1,0 +1,10 @@
+{
+  // CommonJS build config (dist/cjs) — inherits everything else from tsconfig.json.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/cjs",
+    "module": "CommonJS",
+    "moduleResolution": "Bundler",
+    "verbatimModuleSyntax": false
+  }
+}

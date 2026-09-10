@@ -1,0 +1,102 @@
+# KLib - Library for TS/JS
+
+[![npm version](https://img.shields.io/npm/v/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
+[![npm downloads](https://img.shields.io/npm/d18m/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
+[![license](https://img.shields.io/github/license/khgtrn/ts-klib.svg)](https://github.com/khgtrn/ts-klib/blob/main/LICENSE)
+
+Shared TypeScript utility library: Java-style enums, common helper functions, and number-to-words conversion (Vietnamese/English).
+
+Built as both ESM (`dist/esm`) and CJS (`dist/cjs`), with full type declarations, with no runtime dependency beyond standard Web APIs (`crypto`, `TextEncoder`/`TextDecoder`, `btoa`/`atob` — available in browsers and Node.js >= 19).
+
+## Installation
+
+```bash
+pnpm add @khgtrn/klib
+```
+
+Requires Node.js >= 19 at runtime (needed for `crypto.getRandomValues` as a global — see `engines` in [package.json](package.json)). The shipped `.d.ts` files are compatible down to **TypeScript 2.7**, and the compiled JS itself avoids syntax (`?.`, `??`) that older bundlers can't parse — no separate install/config needed to consume this package from a legacy toolchain (e.g. Angular 6).
+
+## BaseEnum — Java-style enums
+
+`BaseEnum` is a base class for simulating Java enums: each constant is a singleton instance, and subclasses only need to `extends` and declare `static readonly` fields — no constructor to write.
+
+```ts
+import { BaseEnum } from '@khgtrn/klib';
+
+class Role extends BaseEnum<number> {
+  static readonly Admin = new Role(1, 'Administrator');
+  static readonly User = new Role(0, 'User');
+
+  isAdmin(): boolean {
+    return this === Role.Admin;
+  }
+}
+
+Role.Admin.label;                 // 'Administrator'
+Role.Admin === Role.Admin;         // true — identity is preserved
+Role.Admin.equals(1);              // true — compares by value
+Role.values();                     // [Role.Admin, Role.User]
+Role.names();                      // ['Admin', 'User']
+Role.valueOf('Admin');             // Role.Admin (looks up by field name, throws if missing)
+Role.fromValue(1);                 // Role.Admin (looks up by value, returns undefined if missing)
+Role.Admin.name();                 // 'Admin'
+new Role(2, 'x');                  // compile error — constructor is protected
+```
+
+The constructor also accepts an optional `opts?: Record<string, any>` parameter for storing arbitrary extra data per constant.
+
+## Utility functions (`func.ts`)
+
+| Function | Description |
+| --- | --- |
+| `isEmpty(value)` | Checks whether a value is empty (string, `0`, `false`, null/undefined, empty array/object) |
+| `isNumber(value)` | Type-guard: a valid finite number (not NaN/Infinity) |
+| `vi2en(s)` | Strips Vietnamese diacritics (`"Điều chỉnh"` -> `"Dieu chinh"`) |
+| `crlf2lf(value)` | Normalizes `\r\n` -> `\n` |
+| `removeNewline(value)` | Removes all newlines, trims surrounding whitespace |
+| `shuffleArray(array)` | Shuffles an array in place (Fisher-Yates) |
+| `objectValueToArray(obj)` | Collects an object's values into an array |
+| `groupBy(list, fn)` | Groups items by a computed key |
+| `removeByKey(objectOrArray, keys)` | Removes fields by name, recursively through nested structures |
+| `removeEmptyValue(objectOrArray, options?)` | Removes `null`/`undefined`/`""` fields, recursively through nested structures |
+| `randomString(length, opt?, specificChars?)` | Generates a random string, optionally requiring uppercase/lowercase/digit/custom characters |
+| `byte2hex(b)` | Byte (0-255) -> 2-character hex |
+| `uuidv7bin()` / `uuid7()` | Generates a UUIDv7 (16 bytes / standard string) |
+| `base64encode(str)` / `base64decode(base64)` | Base64 encode/decode (UTF-8, safe for large strings) |
+| `getObjectValue(object, path)` / `ov(object, path)` | Reads a nested value via a `"a.b.c"` dot path |
+| `toInt(value, defaultValue?)` | Converts to an integer, with a fallback for empty values |
+| `numberToRoman(num)` / `romanToNumber(roman)` | Converts between Roman numerals and numbers (1-3999) |
+| `isRomanNumber(value)` | Validates a Roman numeral string |
+| `base64ToBlob(base64, mimeType, sliceSize?)` | Base64 -> `Blob` (browser) |
+| `downloadFile(fileName, mimeType, base64Content, action?)` | Downloads/opens a file from base64 (browser) |
+| `deepClone(obj)` | Deep-clones an object/array/`Date` |
+
+See the JSDoc in [src/func.ts](src/func.ts) for full parameter/return details.
+
+## numberToWords — spelling out numbers
+
+```ts
+import { numberToWords } from '@khgtrn/klib';
+
+numberToWords(1005);            // "một nghìn không trăm linh năm" (Vietnamese by default)
+numberToWords(1005, 'en');      // "one thousand five"
+numberToWords('1.05', 'vi');    // "một phẩy không năm"
+numberToWords(-123, 'en');      // "negative one hundred twenty-three"
+```
+
+- Integers can be passed as either a `number` or a `string`.
+- Decimals **must be passed as a `string`** (e.g. `'1.05'`), since a `number` can't preserve a leading fractional zero and may pick up floating-point rounding errors — passing a decimal `number` throws with a hint to fix it.
+- Supports up to billion-level magnitude, comfortably covering `Number.MAX_SAFE_INTEGER`.
+- Designed to be easy to extend with more languages: see [src/number-to-words/locales.ts](src/number-to-words/locales.ts).
+
+## Development
+
+```bash
+pnpm install
+pnpm run build   # builds dist/esm and dist/cjs
+pnpm run play    # builds then runs tests/a.ts as a quick smoke test
+```
+
+## License
+
+MIT

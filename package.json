@@ -1,0 +1,45 @@
+{
+  "name": "@khgtrn/lib",
+  "version": "1.0.0",
+  "description": "Library for Typescript",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=19"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:esm": "tsc -p tsconfig.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "postbuild": "cp config/package-cjs.json dist/cjs/package.json && cp config/package-esm.json dist/esm/package.json",
+    "build": "pnpm run clean && pnpm run build:esm && pnpm run build:cjs && pnpm run postbuild",
+    "test": "tsx tests/index.ts"
+  },
+  "keywords": ["typescript", "ts", "lib", "library", "klib"],
+  "author": "khgtrn",
+  "license": "MIT",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.3.4",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.3.4",
+  "devDependencies": {
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "sideEffects": false
+}

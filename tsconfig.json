@@ -1,0 +1,58 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  // This is also the ESM build config (dist/esm) and the config editors use for IntelliSense.
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./src",
+    "outDir": "./dist/esm",
+
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "ES2020",
+    "moduleResolution": "Bundler",
+    // ES2015 (the lowest target this TS version still supports — ES5/ES3
+    // were removed) so tsc downlevels `?.`/`??` (native only from ES2020)
+    // into plain conditional expressions — old bundlers/parsers (e.g.
+    // webpack 4's bundled acorn, ~2018) can't even parse that syntax.
+    "target": "ES2015",
+    "lib": ["ES2020", "DOM"],
+    "types": [],
+    // For nodejs:
+    // "lib": ["esnext"],
+    // "types": ["node"],
+    // and npm install -D @types/node
+
+    // Other Outputs
+    "sourceMap": false,
+    "declaration": true,
+    "declarationMap": false,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Style Options
+    // "noImplicitReturns": true,
+    // "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
+
+    // Recommended Options
+    "strict": true,
+    // "jsx": "react-jsx",
+    // Both off: they force `import type`/`export type` syntax, which needs
+    // TypeScript 3.8+ to parse, and this library targets consumers down to
+    // TypeScript 2.7. Safe to disable since we build with tsc itself (full
+    // program knowledge), not a single-file transpiler (esbuild/swc/babel)
+    // that would actually need the isolatedModules guarantee.
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "tests", "**/*.config.ts"]
+}
