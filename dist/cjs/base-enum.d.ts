@@ -2,7 +2,7 @@
  * Base class for simulating Java-style enums in TypeScript.
  *
  * Subclasses only need to `extends BaseEnum<...>` and declare constants as
- * `static readonly Xxx = new SubClass(value, label, opts?)`, without
+ * `static readonly Xxx = new SubClass(value, label, opt?)`, without
  * redeclaring a constructor. Because `BaseEnum`'s constructor is `protected`,
  * subclasses inherit it while keeping the same protection — instances can't
  * be `new`-ed from outside the class, which preserves enum singleton/identity
@@ -10,10 +10,10 @@
  *
  * @typeParam T - Type of the `value` field (defaults to `number`).
  */
-export declare abstract class BaseEnum<T = number> {
+export declare abstract class BaseEnum<T = number, O = any> {
     readonly value: T;
     readonly label: string;
-    readonly opts?: Record<string, any> | undefined;
+    readonly opt?: O | undefined;
     /**
      * Registry of every instance created, keyed per subclass and per `value`.
      * The outer key is the subclass constructor (so each subclass has its own
@@ -28,9 +28,9 @@ export declare abstract class BaseEnum<T = number> {
      *
      * @param value - Identifying value of the constant (used by `fromValue()`, `equals()`).
      * @param label - Display label/description of the constant.
-     * @param opts - Optional extra data, freely defined by the subclass as needed.
+     * @param opt - Optional extra data, freely defined by the subclass as needed.
      */
-    protected constructor(value: T, label: string, opts?: Record<string, any> | undefined);
+    protected constructor(value: T, label: string, opt?: O | undefined);
     /**
      * Returns the names of the `static readonly` fields declared on the
      * subclass, in declaration order. Mirrors the idea of an enum constant's

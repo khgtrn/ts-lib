@@ -43,7 +43,17 @@ Role.Admin.name();                 // 'Admin'
 new Role(2, 'x');                  // compile error — constructor is protected
 ```
 
-The constructor also accepts an optional `opts?: Record<string, any>` parameter for storing arbitrary extra data per constant.
+The constructor also accepts an optional third parameter, `opt?: O`, for storing arbitrary extra data per constant. Pass the second type argument on `BaseEnum<T, O>` to get accurate type hints on `opt`:
+
+```ts
+class Role extends BaseEnum<number, { icon: string }> {
+  static readonly Admin = new Role(1, 'Administrator', { icon: 'shield' });
+}
+
+Role.Admin.opt?.icon;   // typed as `string | undefined`
+```
+
+Without an explicit `O`, it defaults to `any`.
 
 ## Utility functions (`func.ts`)
 

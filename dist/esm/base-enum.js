@@ -2,7 +2,7 @@
  * Base class for simulating Java-style enums in TypeScript.
  *
  * Subclasses only need to `extends BaseEnum<...>` and declare constants as
- * `static readonly Xxx = new SubClass(value, label, opts?)`, without
+ * `static readonly Xxx = new SubClass(value, label, opt?)`, without
  * redeclaring a constructor. Because `BaseEnum`'s constructor is `protected`,
  * subclasses inherit it while keeping the same protection — instances can't
  * be `new`-ed from outside the class, which preserves enum singleton/identity
@@ -18,12 +18,12 @@ export class BaseEnum {
      *
      * @param value - Identifying value of the constant (used by `fromValue()`, `equals()`).
      * @param label - Display label/description of the constant.
-     * @param opts - Optional extra data, freely defined by the subclass as needed.
+     * @param opt - Optional extra data, freely defined by the subclass as needed.
      */
-    constructor(value, label, opts) {
+    constructor(value, label, opt) {
         this.value = value;
         this.label = label;
-        this.opts = opts;
+        this.opt = opt;
         let map = BaseEnum.registry.get(this.constructor);
         if (!map) {
             map = new Map();

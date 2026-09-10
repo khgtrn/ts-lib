@@ -2,6 +2,12 @@
 
 Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.2]
+
+### Changed
+
+- `BaseEnum`: renamed the constructor's third parameter and the resulting instance field from `opts` to `opt`, and added a second type parameter — `BaseEnum<T, O = any>` — so `opt` is typed as `O` instead of a fixed `Record<string, any>`. Pass `O` explicitly when extending (e.g. `BaseEnum<number, { icon: string }>`) to get accurate type hints on `opt`.
+
 ## [1.0.0]
 
 ### Added

@@ -2,7 +2,7 @@
  * Base class for simulating Java-style enums in TypeScript.
  *
  * Subclasses only need to `extends BaseEnum<...>` and declare constants as
- * `static readonly Xxx = new SubClass(value, label, opts?)`, without
+ * `static readonly Xxx = new SubClass(value, label, opt?)`, without
  * redeclaring a constructor. Because `BaseEnum`'s constructor is `protected`,
  * subclasses inherit it while keeping the same protection — instances can't
  * be `new`-ed from outside the class, which preserves enum singleton/identity
@@ -10,14 +10,14 @@
  *
  * @typeParam T - Type of the `value` field (defaults to `number`).
  */
-export abstract class BaseEnum<T = number> {
+export abstract class BaseEnum<T = number, O = any> {
   /**
    * Registry of every instance created, keyed per subclass and per `value`.
    * The outer key is the subclass constructor (so each subclass has its own
    * list), the inner key is each constant's `value`. Backs `values()`,
    * `fromValue()` and `equals()`.
    */
-  private static readonly registry = new Map<Function, Map<unknown, BaseEnum<any>>>();
+  private static readonly registry = new Map<Function, Map<unknown, BaseEnum<any, any>>>();
 
   /**
    * Creates an enum constant. Only callable from within a subclass
@@ -26,12 +26,12 @@ export abstract class BaseEnum<T = number> {
    *
    * @param value - Identifying value of the constant (used by `fromValue()`, `equals()`).
    * @param label - Display label/description of the constant.
-   * @param opts - Optional extra data, freely defined by the subclass as needed.
+   * @param opt - Optional extra data, freely defined by the subclass as needed.
    */
   protected constructor(
     public readonly value: T,
     public readonly label: string,
-    public readonly opts?: Record<string, any>,
+    public readonly opt?: O,
   ) {
     let map = BaseEnum.registry.get(this.constructor);
     if (!map) {
@@ -91,7 +91,10 @@ export abstract class BaseEnum<T = number> {
    * @param value - Value to look up (of the subclass's `T` type).
    * @returns The matching instance, or `undefined` if none is found.
    */
-  static fromValue<T extends BaseEnum<any>>(this: Function & { prototype: T }, value: any): T | undefined {
+  static fromValue<T extends BaseEnum<any>>(
+    this: Function & { prototype: T },
+    value: any,
+  ): T | undefined {
     return BaseEnum.registry.get(this)?.get(value) as T | undefined;
   }
 
