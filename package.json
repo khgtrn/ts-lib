@@ -1,6 +1,6 @@
 {
   "name": "@khgtrn/lib",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Library for Typescript",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
