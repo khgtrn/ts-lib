@@ -1,8 +1,8 @@
 # Library for Typescript/Javascript
 
-[![npm version](https://img.shields.io/npm/v/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
-[![npm downloads](https://img.shields.io/npm/d18m/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
-[![license](https://img.shields.io/github/license/khgtrn/ts-klib.svg)](https://github.com/khgtrn/ts-klib/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@khgtrn/lib.svg)](https://www.npmjs.com/package/@khgtrn/lib)
+[![npm downloads](https://img.shields.io/npm/d18m/@khgtrn/lib.svg)](https://www.npmjs.com/package/@khgtrn/lib)
+[![license](https://img.shields.io/github/license/khgtrn/ts-lib.svg)](https://github.com/khgtrn/ts-lib/blob/main/LICENSE)
 
 Shared TypeScript utility library: Java-style enums, common helper functions, number-to-words conversion (Vietnamese/English), and floating-point-safe rounding.
 
@@ -11,7 +11,7 @@ Built as both ESM (`dist/esm`) and CJS (`dist/cjs`), with full type declarations
 ## Installation
 
 ```bash
-pnpm add @khgtrn/klib
+pnpm add @khgtrn/lib
 ```
 
 Requires Node.js >= 19 at runtime (needed for `crypto.getRandomValues` as a global — see `engines` in [package.json](package.json)). The shipped `.d.ts` files are compatible down to **TypeScript 2.7**, and the compiled JS itself avoids syntax (`?.`, `??`) that older bundlers can't parse — no separate install/config needed to consume this package from a legacy toolchain (e.g. Angular 6).
@@ -21,7 +21,7 @@ Requires Node.js >= 19 at runtime (needed for `crypto.getRandomValues` as a glob
 `BaseEnum` is a base class for simulating Java enums: each constant is a singleton instance, and subclasses only need to `extends` and declare `static readonly` fields — no constructor to write.
 
 ```ts
-import { BaseEnum } from '@khgtrn/klib';
+import { BaseEnum } from '@khgtrn/lib';
 
 class Role extends BaseEnum<number> {
   static readonly Admin = new Role(1, 'Administrator');
@@ -76,7 +76,7 @@ See the JSDoc in [src/func.ts](src/func.ts) for full parameter/return details.
 ## numberToWords — spelling out numbers
 
 ```ts
-import { numberToWords } from '@khgtrn/klib';
+import { numberToWords } from '@khgtrn/lib';
 
 numberToWords(1005);            // "một nghìn không trăm linh năm" (Vietnamese by default)
 numberToWords(1005, 'en');      // "one thousand five"
@@ -92,7 +92,7 @@ numberToWords(-123, 'en');      // "negative one hundred twenty-three"
 ## round — floating-point-safe rounding
 
 ```ts
-import { round } from '@khgtrn/klib';
+import { round } from '@khgtrn/lib';
 
 round(491.66999999999996);      // 491.67 (default precision = 10)
 round(1.23456, 2);              // 1.23

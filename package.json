@@ -26,7 +26,12 @@
     "build": "pnpm run clean && pnpm run build:esm && pnpm run build:cjs && pnpm run postbuild",
     "test": "tsx tests/index.ts"
   },
-  "keywords": ["typescript", "ts", "lib", "library", "klib"],
+  "keywords": [
+    "typescript",
+    "ts",
+    "lib",
+    "library"
+  ],
   "author": "khgtrn",
   "license": "MIT",
   "devEngines": {
