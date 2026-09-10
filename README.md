@@ -4,7 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/d18m/@khgtrn/klib.svg)](https://www.npmjs.com/package/@khgtrn/klib)
 [![license](https://img.shields.io/github/license/khgtrn/ts-klib.svg)](https://github.com/khgtrn/ts-klib/blob/main/LICENSE)
 
-Shared TypeScript utility library: Java-style enums, common helper functions, and number-to-words conversion (Vietnamese/English).
+Shared TypeScript utility library: Java-style enums, common helper functions, number-to-words conversion (Vietnamese/English), and floating-point-safe rounding.
 
 Built as both ESM (`dist/esm`) and CJS (`dist/cjs`), with full type declarations, with no runtime dependency beyond standard Web APIs (`crypto`, `TextEncoder`/`TextDecoder`, `btoa`/`atob` — available in browsers and Node.js >= 19).
 
@@ -61,7 +61,7 @@ The constructor also accepts an optional `opts?: Record<string, any>` parameter 
 | `removeEmptyValue(objectOrArray, options?)` | Removes `null`/`undefined`/`""` fields, recursively through nested structures |
 | `randomString(length, opt?, specificChars?)` | Generates a random string, optionally requiring uppercase/lowercase/digit/custom characters |
 | `byte2hex(b)` | Byte (0-255) -> 2-character hex |
-| `uuidv7bin()` / `uuid7()` | Generates a UUIDv7 (16 bytes / standard string) |
+| `uuid7bin()` / `uuid7()` | Generates a UUIDv7 (16 bytes / standard string) |
 | `base64encode(str)` / `base64decode(base64)` | Base64 encode/decode (UTF-8, safe for large strings) |
 | `getObjectValue(object, path)` / `ov(object, path)` | Reads a nested value via a `"a.b.c"` dot path |
 | `toInt(value, defaultValue?)` | Converts to an integer, with a fallback for empty values |
@@ -88,6 +88,17 @@ numberToWords(-123, 'en');      // "negative one hundred twenty-three"
 - Decimals **must be passed as a `string`** (e.g. `'1.05'`), since a `number` can't preserve a leading fractional zero and may pick up floating-point rounding errors — passing a decimal `number` throws with a hint to fix it.
 - Supports up to billion-level magnitude, comfortably covering `Number.MAX_SAFE_INTEGER`.
 - Designed to be easy to extend with more languages: see [src/number-to-words/locales.ts](src/number-to-words/locales.ts).
+
+## round — floating-point-safe rounding
+
+```ts
+import { round } from '@khgtrn/klib';
+
+round(491.66999999999996);      // 491.67 (default precision = 10)
+round(1.23456, 2);              // 1.23
+```
+
+Rounds `value` to `precision` decimal places (default `10`), mainly to clean up binary floating-point noise from arithmetic rather than to reduce genuine precision.
 
 ## Development
 
