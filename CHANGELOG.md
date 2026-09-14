@@ -2,6 +2,19 @@
 
 Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.3]
+
+### Added
+
+- `nullish(value, defaultValue)` — returns `value` unless it's `null`/`undefined`, otherwise `defaultValue`; a `??`-equivalent for TypeScript versions below 3.7.
+- `jsonParse(s, defaultValue?)` — `JSON.parse` with a fallback value (default `null`) instead of throwing on invalid input.
+- `padStart(str, targetLength, padChar?)` / `padEnd(str, targetLength, padChar?)` — pad a string to a target length by adding characters to the left/right (defaults to `"0"`). Implemented manually (not via the native `String.prototype.padStart`/`padEnd`) to avoid depending on ES2017 runtime APIs.
+
+### Fixed
+
+- `objectValueToArray()`: switched from `for...in` to `Object.keys().map()` so it only collects the object's **own** enumerable values, no longer picking up enumerable properties inherited from the prototype chain.
+- `removeByKey()` / `removeEmptyValue()`: switched from `Object.entries`/`Object.fromEntries` (ES2017/ES2019 runtime APIs) to `Object.keys()`-based loops, consistent with the library's avoidance of newer runtime APIs elsewhere (e.g. the hand-written `padStart`/`padEnd`).
+
 ## [1.0.2]
 
 ### Changed

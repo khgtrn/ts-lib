@@ -20,6 +20,21 @@ export declare function isEmpty(value: any): boolean;
  */
 export declare function isNumber(value: any): value is number;
 /**
+ * Nếu giá trị của `value` không phải là null hoặc undefined thì lấy, ngược lại trả về `defaultValue`.
+ * @note Sử dụng thay cho cú pháp `??`. Nếu TS3.7 trở lên thì không cần dùng.
+ * @param value Giá trị cần kiểm tra
+ * @param defaultValue Giá trị mặc định trả về nếu `value` là null hoặc undefined
+ * @global
+ */
+export declare function nullish(value: any, defaultValue: any): any;
+/**
+ * JSON.parse với giá trị mặc định nếu có lỗi
+ * @param s giá trị JSON cần parse
+ * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse. Mặc định là null
+ * @returns any
+ */
+export declare function jsonParse<T = any>(s: string, defaultValue?: T | any): T | null;
+/**
  * Converts Vietnamese diacritics to their plain ASCII equivalents
  * (e.g. `"Điều chỉnh"` -> `"Dieu chinh"`).
  *
@@ -40,6 +55,24 @@ export declare function crlf2lf(value: string): string;
  * @returns The string with all newlines removed.
  */
 export declare function removeNewline(value: string): string;
+/**
+ * Thêm ký tự vào đầu chuỗi cho đến khi đạt được độ dài mục tiêu
+ * @param str Chuỗi gốc
+ * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
+ * @param padChar Ký tự dùng để thêm vào đầu chuỗi (mặc định là "0")
+ * @returns Chuỗi đã được thêm ký tự vào đầu nếu cần thiết
+ * @global
+ */
+export declare function padStart(str: string, targetLength: number, padChar?: string): string;
+/**
+ * Thêm ký tự vào cuối chuỗi cho đến khi đạt được độ dài mục tiêu
+ * @param str Chuỗi gốc
+ * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
+ * @param padChar Ký tự dùng để thêm vào cuối chuỗi (mặc định là "0")
+ * @returns Chuỗi đã được thêm ký tự vào cuối nếu cần thiết
+ * @global
+ */
+export declare function padEnd(str: string, targetLength: number, padChar?: string): string;
 /**
  * Shuffles an array in place using the Fisher-Yates algorithm.
  * @param array - Array to shuffle (mutated directly).

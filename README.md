@@ -61,9 +61,12 @@ Without an explicit `O`, it defaults to `any`.
 | --- | --- |
 | `isEmpty(value)` | Checks whether a value is empty (string, `0`, `false`, null/undefined, empty array/object) |
 | `isNumber(value)` | Type-guard: a valid finite number (not NaN/Infinity) |
+| `nullish(value, defaultValue)` | Returns `value` unless it's `null`/`undefined`, in which case returns `defaultValue` — a `??`-equivalent for pre-3.7 TypeScript |
+| `jsonParse(s, defaultValue?)` | `JSON.parse` with a fallback value instead of throwing on invalid input |
 | `vi2en(s)` | Strips Vietnamese diacritics (`"Điều chỉnh"` -> `"Dieu chinh"`) |
 | `crlf2lf(value)` | Normalizes `\r\n` -> `\n` |
 | `removeNewline(value)` | Removes all newlines, trims surrounding whitespace |
+| `padStart(str, targetLength, padChar?)` / `padEnd(str, targetLength, padChar?)` | Pads a string to a target length by adding characters to the left/right (defaults to `"0"`) |
 | `shuffleArray(array)` | Shuffles an array in place (Fisher-Yates) |
 | `objectValueToArray(obj)` | Collects an object's values into an array |
 | `groupBy(list, fn)` | Groups items by a computed key |

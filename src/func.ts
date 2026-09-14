@@ -39,6 +39,31 @@ export function isNumber(value: any): value is number {
 }
 
 /**
+ * Nếu giá trị của `value` không phải là null hoặc undefined thì lấy, ngược lại trả về `defaultValue`.
+ * @note Sử dụng thay cho cú pháp `??`. Nếu TS3.7 trở lên thì không cần dùng.
+ * @param value Giá trị cần kiểm tra
+ * @param defaultValue Giá trị mặc định trả về nếu `value` là null hoặc undefined
+ * @global
+ */
+export function nullish(value: any, defaultValue: any): any {
+  return value !== null && value !== undefined ? value : defaultValue;
+}
+
+/**
+ * JSON.parse với giá trị mặc định nếu có lỗi
+ * @param s giá trị JSON cần parse
+ * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse. Mặc định là null
+ * @returns any
+ */
+export function jsonParse<T = any>(s: string, defaultValue: T | any = null): T | null {
+  try {
+    return JSON.parse(s) as T;
+  } catch (e) {
+    return defaultValue as T;
+  }
+}
+
+/**
  * Converts Vietnamese diacritics to their plain ASCII equivalents
  * (e.g. `"Điều chỉnh"` -> `"Dieu chinh"`).
  *
@@ -76,6 +101,43 @@ export function crlf2lf(value: string): string {
 export function removeNewline(value: string): string {
   return crlf2lf(value).trim().replace(/\n/g, "");
 }
+/**
+ * Thêm ký tự vào đầu chuỗi cho đến khi đạt được độ dài mục tiêu
+ * @param str Chuỗi gốc
+ * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
+ * @param padChar Ký tự dùng để thêm vào đầu chuỗi (mặc định là "0")
+ * @returns Chuỗi đã được thêm ký tự vào đầu nếu cần thiết
+ * @global
+ */
+export function padStart(str: string, targetLength: number, padChar: string = "0"): string {
+  str = String(str);
+  if (str.length >= targetLength || !padChar) return str;
+
+  const padding = padChar
+    .repeat(Math.ceil((targetLength - str.length) / padChar.length))
+    .substring(0, targetLength - str.length);
+
+  return padding + str;
+}
+
+/**
+ * Thêm ký tự vào cuối chuỗi cho đến khi đạt được độ dài mục tiêu
+ * @param str Chuỗi gốc
+ * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
+ * @param padChar Ký tự dùng để thêm vào cuối chuỗi (mặc định là "0")
+ * @returns Chuỗi đã được thêm ký tự vào cuối nếu cần thiết
+ * @global
+ */
+export function padEnd(str: string, targetLength: number, padChar: string = "0"): string {
+  str = String(str);
+  if (str.length >= targetLength || !padChar) return str;
+
+  const padding = padChar
+    .repeat(Math.ceil((targetLength - str.length) / padChar.length))
+    .substring(0, targetLength - str.length);
+
+  return str + padding;
+}
 
 /**
  * Shuffles an array in place using the Fisher-Yates algorithm.
@@ -98,9 +160,8 @@ export function shuffleArray(array: any[]): any[] {
  * @returns Array of the object's values.
  */
 export function objectValueToArray(obj: any): any[] {
-  var arr = [];
-  for (var i in obj) arr.push(obj[i]);
-  return arr;
+  if (obj === null || obj === undefined) return [];
+  return Object.keys(obj).map((key) => obj[key]);
 }
 
 /**
@@ -142,16 +203,19 @@ export function removeByKey<T = any>(objectOrArray: T, keys: string[]): T {
   }
 
   if (typeof objectOrArray === "object" && objectOrArray !== null) {
-    const entries: [string, unknown][] = Object.entries(objectOrArray)
-      .filter(([key]) => !keys.includes(key))
-      .map(([key, value]): [string, unknown] => {
-        if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
-          return [key, removeByKey(value, keys)];
-        }
-        return [key, value];
-      });
+    const source = objectOrArray as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
 
-    return Object.fromEntries(entries) as T;
+    Object.keys(source).forEach((key) => {
+      if (keys.includes(key)) return;
+      const value = source[key];
+      result[key] =
+        Array.isArray(value) || (typeof value === "object" && value !== null)
+          ? removeByKey(value, keys)
+          : value;
+    });
+
+    return result as T;
   }
 
   // Primitives are returned as-is
@@ -200,23 +264,22 @@ export function removeEmptyValue<T = any>(
   }
 
   if (typeof objectOrArray === "object" && objectOrArray !== null) {
-    const entries = Object.entries(objectOrArray as Record<string, unknown>)
-      .map(([key, value]): [string, unknown] => {
-        if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
-          return [
-            key,
-            removeEmptyValue(value, {
-              removeNull,
-              removeUndefined,
-              removeEmptyString,
-            }),
-          ];
-        }
-        return [key, value];
-      })
-      .filter(([, value]): boolean => !shouldRemove(value));
+    const source = objectOrArray as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
 
-    return Object.fromEntries(entries) as T;
+    Object.keys(source).forEach((key) => {
+      const rawValue = source[key];
+      const value =
+        Array.isArray(rawValue) || (typeof rawValue === "object" && rawValue !== null)
+          ? removeEmptyValue(rawValue, { removeNull, removeUndefined, removeEmptyString })
+          : rawValue;
+
+      if (!shouldRemove(value)) {
+        result[key] = value;
+      }
+    });
+
+    return result as T;
   }
 
   return objectOrArray;

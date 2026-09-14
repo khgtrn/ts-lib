@@ -42,6 +42,30 @@ export function isNumber(value) {
     return typeof value === "number" && Number.isFinite(value);
 }
 /**
+ * Nếu giá trị của `value` không phải là null hoặc undefined thì lấy, ngược lại trả về `defaultValue`.
+ * @note Sử dụng thay cho cú pháp `??`. Nếu TS3.7 trở lên thì không cần dùng.
+ * @param value Giá trị cần kiểm tra
+ * @param defaultValue Giá trị mặc định trả về nếu `value` là null hoặc undefined
+ * @global
+ */
+export function nullish(value, defaultValue) {
+    return value !== null && value !== undefined ? value : defaultValue;
+}
+/**
+ * JSON.parse với giá trị mặc định nếu có lỗi
+ * @param s giá trị JSON cần parse
+ * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse. Mặc định là null
+ * @returns any
+ */
+export function jsonParse(s, defaultValue = null) {
+    try {
+        return JSON.parse(s);
+    }
+    catch (e) {
+        return defaultValue;
+    }
+}
+/**
  * Converts Vietnamese diacritics to their plain ASCII equivalents
  * (e.g. `"Điều chỉnh"` -> `"Dieu chinh"`).
  *
@@ -76,6 +100,40 @@ export function removeNewline(value) {
     return crlf2lf(value).trim().replace(/\n/g, "");
 }
 /**
+ * Thêm ký tự vào đầu chuỗi cho đến khi đạt được độ dài mục tiêu
+ * @param str Chuỗi gốc
+ * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
+ * @param padChar Ký tự dùng để thêm vào đầu chuỗi (mặc định là "0")
+ * @returns Chuỗi đã được thêm ký tự vào đầu nếu cần thiết
+ * @global
+ */
+export function padStart(str, targetLength, padChar = "0") {
+    str = String(str);
+    if (str.length >= targetLength || !padChar)
+        return str;
+    const padding = padChar
+        .repeat(Math.ceil((targetLength - str.length) / padChar.length))
+        .substring(0, targetLength - str.length);
+    return padding + str;
+}
+/**
+ * Thêm ký tự vào cuối chuỗi cho đến khi đạt được độ dài mục tiêu
+ * @param str Chuỗi gốc
+ * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
+ * @param padChar Ký tự dùng để thêm vào cuối chuỗi (mặc định là "0")
+ * @returns Chuỗi đã được thêm ký tự vào cuối nếu cần thiết
+ * @global
+ */
+export function padEnd(str, targetLength, padChar = "0") {
+    str = String(str);
+    if (str.length >= targetLength || !padChar)
+        return str;
+    const padding = padChar
+        .repeat(Math.ceil((targetLength - str.length) / padChar.length))
+        .substring(0, targetLength - str.length);
+    return str + padding;
+}
+/**
  * Shuffles an array in place using the Fisher-Yates algorithm.
  * @param array - Array to shuffle (mutated directly).
  * @returns The same array reference, shuffled.
@@ -94,10 +152,9 @@ export function shuffleArray(array) {
  * @returns Array of the object's values.
  */
 export function objectValueToArray(obj) {
-    var arr = [];
-    for (var i in obj)
-        arr.push(obj[i]);
-    return arr;
+    if (obj === null || obj === undefined)
+        return [];
+    return Object.keys(obj).map((key) => obj[key]);
 }
 /**
  * Groups list items by the key returned from `fn`, similar to Lodash's
@@ -134,15 +191,18 @@ export function removeByKey(objectOrArray, keys) {
         return objectOrArray.map((item) => typeof item === "object" && item !== null ? removeByKey(item, keys) : item);
     }
     if (typeof objectOrArray === "object" && objectOrArray !== null) {
-        const entries = Object.entries(objectOrArray)
-            .filter(([key]) => !keys.includes(key))
-            .map(([key, value]) => {
-            if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
-                return [key, removeByKey(value, keys)];
-            }
-            return [key, value];
+        const source = objectOrArray;
+        const result = {};
+        Object.keys(source).forEach((key) => {
+            if (keys.includes(key))
+                return;
+            const value = source[key];
+            result[key] =
+                Array.isArray(value) || (typeof value === "object" && value !== null)
+                    ? removeByKey(value, keys)
+                    : value;
         });
-        return Object.fromEntries(entries);
+        return result;
     }
     // Primitives are returned as-is
     return objectOrArray;
@@ -177,22 +237,18 @@ export function removeEmptyValue(objectOrArray, options = {}) {
         return result;
     }
     if (typeof objectOrArray === "object" && objectOrArray !== null) {
-        const entries = Object.entries(objectOrArray)
-            .map(([key, value]) => {
-            if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
-                return [
-                    key,
-                    removeEmptyValue(value, {
-                        removeNull,
-                        removeUndefined,
-                        removeEmptyString,
-                    }),
-                ];
+        const source = objectOrArray;
+        const result = {};
+        Object.keys(source).forEach((key) => {
+            const rawValue = source[key];
+            const value = Array.isArray(rawValue) || (typeof rawValue === "object" && rawValue !== null)
+                ? removeEmptyValue(rawValue, { removeNull, removeUndefined, removeEmptyString })
+                : rawValue;
+            if (!shouldRemove(value)) {
+                result[key] = value;
             }
-            return [key, value];
-        })
-            .filter(([, value]) => !shouldRemove(value));
-        return Object.fromEntries(entries);
+        });
+        return result;
     }
     return objectOrArray;
 }
