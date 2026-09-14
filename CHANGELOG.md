@@ -2,6 +2,22 @@
 
 Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.4]
+
+### Added
+
+- `isPlainObject(value)` — type-guard for a plain object (`{}` literal or `Object.create(null)`), as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`. Used internally by `removeByKey`/`removeEmptyValue`, exported for general use.
+
+### Fixed
+
+- `jsonParse()`: `s` now accepts `null`/`undefined` and is checked explicitly before parsing, since `JSON.parse(null)` doesn't throw — it returns `null` — which silently bypassed `defaultValue`. Overloaded so passing a non-null `defaultValue` narrows the return type to exclude `null`.
+- `objectValueToArray()`: switched from `for...in` to `Object.keys().map()` so it only collects the object's **own** enumerable values, no longer picking up enumerable properties inherited from the prototype chain.
+- `removeByKey()` / `removeEmptyValue()`: switched from `Object.entries`/`Object.fromEntries` (ES2017/ES2019 runtime APIs) to `Object.keys()`-based loops, consistent with the library's avoidance of newer runtime APIs elsewhere (e.g. the hand-written `padStart`/`padEnd`). Also no longer treat `Date`/`Map`/`Set`/`RegExp` as plain objects to walk — they're now returned as-is instead of being silently turned into an empty `{}` (own enumerable keys of these built-ins are `[]`, since their data lives outside enumerable properties).
+- `isEmpty()`: `Map`/`Set` are now checked via `.size` instead of own enumerable keys (which is always `0` for them, so a non-empty `Map`/`Set` was incorrectly reported as empty); `Date` is now always considered non-empty (it always holds a timestamp, even `Invalid Date`).
+- `getObjectValue()` / `ov()`: fixed to match its documented optional-chaining equivalence — an intermediate falsy-but-defined value (`0`, `false`, `""`) no longer short-circuits the traversal and gets returned in place of the target property; only `null`/`undefined` stop the lookup now.
+- `toInt()`: a finite `number` input (e.g. `0`) is now truncated directly instead of being routed through `isEmpty()` first — `isEmpty(0)` is `true`, which made `toInt(0, defaultValue)` incorrectly return `defaultValue` instead of `0`.
+- `downloadFile()`: the auto-prefix check now tests for the presence of `/` instead of `startsWith("application/")`, so passing an already-full, non-`application/*` MIME type (e.g. `"image/png"`) no longer gets mangled into `"application/image/png"`.
+
 ## [1.0.3]
 
 ### Added

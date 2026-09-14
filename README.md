@@ -70,6 +70,7 @@ Without an explicit `O`, it defaults to `any`.
 | `shuffleArray(array)` | Shuffles an array in place (Fisher-Yates) |
 | `objectValueToArray(obj)` | Collects an object's values into an array |
 | `groupBy(list, fn)` | Groups items by a computed key |
+| `isPlainObject(value)` | Type-guard: a plain object (`{}` literal or `Object.create(null)`), not an array or a special built-in (`Date`/`Map`/`Set`/`RegExp`) |
 | `removeByKey(objectOrArray, keys)` | Removes fields by name, recursively through nested structures |
 | `removeEmptyValue(objectOrArray, options?)` | Removes `null`/`undefined`/`""` fields, recursively through nested structures |
 | `randomString(length, opt?, specificChars?)` | Generates a random string, optionally requiring uppercase/lowercase/digit/custom characters |

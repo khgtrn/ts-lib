@@ -6,6 +6,8 @@
  * - boolean: `false`.
  * - `null`/`undefined`: always empty.
  * - array: length `0`.
+ * - `Map`/`Set`: `size` equal to `0`.
+ * - `Date`: never empty (it always holds a timestamp, even if `Invalid Date`).
  * - other objects: no own enumerable keys.
  * - anything else (function, symbol, ...): never empty.
  *
@@ -27,6 +29,12 @@ export function isEmpty(value) {
     }
     else if (Array.isArray(value)) {
         return value.length === 0;
+    }
+    else if (value instanceof Map || value instanceof Set) {
+        return value.size === 0;
+    }
+    else if (value instanceof Date) {
+        return false;
     }
     else if (typeof value === "object") {
         return Object.keys(value).length === 0;
@@ -51,13 +59,9 @@ export function isNumber(value) {
 export function nullish(value, defaultValue) {
     return value !== null && value !== undefined ? value : defaultValue;
 }
-/**
- * JSON.parse với giá trị mặc định nếu có lỗi
- * @param s giá trị JSON cần parse
- * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse. Mặc định là null
- * @returns any
- */
 export function jsonParse(s, defaultValue = null) {
+    if (s === null || s === undefined)
+        return defaultValue;
     try {
         return JSON.parse(s);
     }
@@ -181,6 +185,16 @@ export function groupBy(list, fn) {
     return objectValueToArray(groups);
 }
 /**
+ * Checks whether `value` is a plain object (`{}` literal or `Object.create(null)`),
+ * as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`.
+ */
+export function isPlainObject(value) {
+    if (typeof value !== "object" || value === null || Array.isArray(value))
+        return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+}
+/**
  * Remove keys from object or array
  * @param objectOrArray Object or array
  * @param keys Keys to remove
@@ -190,7 +204,7 @@ export function removeByKey(objectOrArray, keys) {
     if (Array.isArray(objectOrArray)) {
         return objectOrArray.map((item) => typeof item === "object" && item !== null ? removeByKey(item, keys) : item);
     }
-    if (typeof objectOrArray === "object" && objectOrArray !== null) {
+    if (isPlainObject(objectOrArray)) {
         const source = objectOrArray;
         const result = {};
         Object.keys(source).forEach((key) => {
@@ -204,7 +218,7 @@ export function removeByKey(objectOrArray, keys) {
         });
         return result;
     }
-    // Primitives are returned as-is
+    // Primitives and non-plain objects (Date, Map, Set, RegExp, ...) are returned as-is
     return objectOrArray;
 }
 /**
@@ -236,7 +250,7 @@ export function removeEmptyValue(objectOrArray, options = {}) {
             .filter((item) => !shouldRemove(item));
         return result;
     }
-    if (typeof objectOrArray === "object" && objectOrArray !== null) {
+    if (isPlainObject(objectOrArray)) {
         const source = objectOrArray;
         const result = {};
         Object.keys(source).forEach((key) => {
@@ -250,6 +264,7 @@ export function removeEmptyValue(objectOrArray, options = {}) {
         });
         return result;
     }
+    // Primitives and non-plain objects (Date, Map, Set, RegExp, ...) are returned as-is
     return objectOrArray;
 }
 /**
@@ -414,11 +429,11 @@ export function base64decode(base64) {
  * @global
  */
 export function getObjectValue(object, path) {
-    if (!object)
+    if (object === null || object === undefined)
         return null;
     return path
         .split(".")
-        .reduce((acc, part) => acc && acc[part], object);
+        .reduce((acc, part) => (acc === null || acc === undefined ? acc : acc[part]), object);
 }
 /**
  * Short alias for {@link getObjectValue}.
@@ -433,12 +448,19 @@ export function ov(object, path) {
  * Converts a value to an integer, similar to `parseInt`/`Number` but with an
  * explicit fallback for empty values (see {@link isEmpty}).
  *
+ * A finite `number` is truncated directly (not routed through {@link isEmpty}),
+ * so `toInt(0, 100)` returns `0` rather than `100` — `isEmpty(0)` is `true`,
+ * which would otherwise make a literal `0` input indistinguishable from a
+ * missing value.
+ *
  * @param value - Value to convert.
  * @param defaultValue - Value returned when `value` is empty. Defaults to `0`.
  * @returns The parsed integer, `defaultValue` if `value` is empty, or `NaN`
  * if `value` is a non-numeric, non-empty string.
  */
 export function toInt(value, defaultValue = 0) {
+    if (isNumber(value))
+        return Math.trunc(value);
     if (isEmpty(value))
         return defaultValue;
     return typeof value === "string" ? Number.parseInt(value.trim()) : Number(value);
@@ -557,7 +579,7 @@ export function base64ToBlob(base64, mimeType, sliceSize = 512) {
  * tab, `"open_blank"` opens it in a new tab. Defaults to `"download"`.
  */
 export function downloadFile(fileName, mimeType, base64Content, action = "download") {
-    if (!mimeType.startsWith("application/")) {
+    if (!mimeType.includes("/")) {
         mimeType = `application/${mimeType}`;
     }
     const blob = base64ToBlob(base64Content, mimeType);

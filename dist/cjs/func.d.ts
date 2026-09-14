@@ -6,6 +6,8 @@
  * - boolean: `false`.
  * - `null`/`undefined`: always empty.
  * - array: length `0`.
+ * - `Map`/`Set`: `size` equal to `0`.
+ * - `Date`: never empty (it always holds a timestamp, even if `Invalid Date`).
  * - other objects: no own enumerable keys.
  * - anything else (function, symbol, ...): never empty.
  *
@@ -29,11 +31,14 @@ export declare function isNumber(value: any): value is number;
 export declare function nullish(value: any, defaultValue: any): any;
 /**
  * JSON.parse với giá trị mặc định nếu có lỗi
- * @param s giá trị JSON cần parse
- * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse. Mặc định là null
+ * @param s giá trị JSON cần parse. `null`/`undefined` được coi là lỗi (không gọi `JSON.parse`,
+ * vì `JSON.parse(null)` không throw mà trả về `null`)
+ * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse, hoặc `s` là null/undefined.
+ * Mặc định là null
  * @returns any
  */
-export declare function jsonParse<T = any>(s: string, defaultValue?: T | any): T | null;
+export declare function jsonParse<T = any>(s: string | null | undefined, defaultValue: T): T;
+export declare function jsonParse<T = any>(s: string | null | undefined, defaultValue?: null): T | null;
 /**
  * Converts Vietnamese diacritics to their plain ASCII equivalents
  * (e.g. `"Điều chỉnh"` -> `"Dieu chinh"`).
@@ -95,6 +100,11 @@ export declare function objectValueToArray(obj: any): any[];
  * @returns Array of groups, each an array of items sharing the same key.
  */
 export declare function groupBy(list: any, fn: (item: any) => any): any[];
+/**
+ * Checks whether `value` is a plain object (`{}` literal or `Object.create(null)`),
+ * as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`.
+ */
+export declare function isPlainObject(value: unknown): value is Record<string, unknown>;
 /**
  * Remove keys from object or array
  * @param objectOrArray Object or array
@@ -191,6 +201,11 @@ export declare function ov(object: null | undefined | Record<string, any>, path:
 /**
  * Converts a value to an integer, similar to `parseInt`/`Number` but with an
  * explicit fallback for empty values (see {@link isEmpty}).
+ *
+ * A finite `number` is truncated directly (not routed through {@link isEmpty}),
+ * so `toInt(0, 100)` returns `0` rather than `100` — `isEmpty(0)` is `true`,
+ * which would otherwise make a literal `0` input indistinguishable from a
+ * missing value.
  *
  * @param value - Value to convert.
  * @param defaultValue - Value returned when `value` is empty. Defaults to `0`.

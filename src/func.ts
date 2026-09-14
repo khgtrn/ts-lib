@@ -6,6 +6,8 @@
  * - boolean: `false`.
  * - `null`/`undefined`: always empty.
  * - array: length `0`.
+ * - `Map`/`Set`: `size` equal to `0`.
+ * - `Date`: never empty (it always holds a timestamp, even if `Invalid Date`).
  * - other objects: no own enumerable keys.
  * - anything else (function, symbol, ...): never empty.
  *
@@ -23,6 +25,10 @@ export function isEmpty(value: any): boolean {
     return true;
   } else if (Array.isArray(value)) {
     return value.length === 0;
+  } else if (value instanceof Map || value instanceof Set) {
+    return value.size === 0;
+  } else if (value instanceof Date) {
+    return false;
   } else if (typeof value === "object") {
     return Object.keys(value).length === 0;
   }
@@ -51,15 +57,23 @@ export function nullish(value: any, defaultValue: any): any {
 
 /**
  * JSON.parse với giá trị mặc định nếu có lỗi
- * @param s giá trị JSON cần parse
- * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse. Mặc định là null
+ * @param s giá trị JSON cần parse. `null`/`undefined` được coi là lỗi (không gọi `JSON.parse`,
+ * vì `JSON.parse(null)` không throw mà trả về `null`)
+ * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse, hoặc `s` là null/undefined.
+ * Mặc định là null
  * @returns any
  */
-export function jsonParse<T = any>(s: string, defaultValue: T | any = null): T | null {
+export function jsonParse<T = any>(s: string | null | undefined, defaultValue: T): T;
+export function jsonParse<T = any>(s: string | null | undefined, defaultValue?: null): T | null;
+export function jsonParse<T = any>(
+  s: string | null | undefined,
+  defaultValue: T | null = null,
+): T | null {
+  if (s === null || s === undefined) return defaultValue;
   try {
     return JSON.parse(s) as T;
   } catch (e) {
-    return defaultValue as T;
+    return defaultValue;
   }
 }
 
@@ -190,6 +204,16 @@ export function groupBy(list: any, fn: (item: any) => any): any[] {
 }
 
 /**
+ * Checks whether `value` is a plain object (`{}` literal or `Object.create(null)`),
+ * as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`.
+ */
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
  * Remove keys from object or array
  * @param objectOrArray Object or array
  * @param keys Keys to remove
@@ -202,7 +226,7 @@ export function removeByKey<T = any>(objectOrArray: T, keys: string[]): T {
     ) as T;
   }
 
-  if (typeof objectOrArray === "object" && objectOrArray !== null) {
+  if (isPlainObject(objectOrArray)) {
     const source = objectOrArray as Record<string, unknown>;
     const result: Record<string, unknown> = {};
 
@@ -218,7 +242,7 @@ export function removeByKey<T = any>(objectOrArray: T, keys: string[]): T {
     return result as T;
   }
 
-  // Primitives are returned as-is
+  // Primitives and non-plain objects (Date, Map, Set, RegExp, ...) are returned as-is
   return objectOrArray;
 }
 
@@ -263,7 +287,7 @@ export function removeEmptyValue<T = any>(
     return result as unknown as T;
   }
 
-  if (typeof objectOrArray === "object" && objectOrArray !== null) {
+  if (isPlainObject(objectOrArray)) {
     const source = objectOrArray as Record<string, unknown>;
     const result: Record<string, unknown> = {};
 
@@ -282,6 +306,7 @@ export function removeEmptyValue<T = any>(
     return result as T;
   }
 
+  // Primitives and non-plain objects (Date, Map, Set, RegExp, ...) are returned as-is
   return objectOrArray;
 }
 
@@ -472,10 +497,13 @@ export function base64decode(base64: string): string {
  * @global
  */
 export function getObjectValue(object: null | undefined | Record<string, any>, path: string): any {
-  if (!object) return null;
+  if (object === null || object === undefined) return null;
   return path
     .split(".")
-    .reduce((acc: Record<string, any>, part: string): any => acc && acc[part], object);
+    .reduce(
+      (acc: any, part: string): any => (acc === null || acc === undefined ? acc : acc[part]),
+      object,
+    );
 }
 
 /**
@@ -492,6 +520,11 @@ export function ov(object: null | undefined | Record<string, any>, path: string)
  * Converts a value to an integer, similar to `parseInt`/`Number` but with an
  * explicit fallback for empty values (see {@link isEmpty}).
  *
+ * A finite `number` is truncated directly (not routed through {@link isEmpty}),
+ * so `toInt(0, 100)` returns `0` rather than `100` — `isEmpty(0)` is `true`,
+ * which would otherwise make a literal `0` input indistinguishable from a
+ * missing value.
+ *
  * @param value - Value to convert.
  * @param defaultValue - Value returned when `value` is empty. Defaults to `0`.
  * @returns The parsed integer, `defaultValue` if `value` is empty, or `NaN`
@@ -501,6 +534,7 @@ export function toInt(
   value: any,
   defaultValue: number | null | undefined = 0,
 ): number | null | undefined {
+  if (isNumber(value)) return Math.trunc(value);
   if (isEmpty(value)) return defaultValue;
   return typeof value === "string" ? Number.parseInt(value.trim()) : Number(value);
 }
@@ -634,7 +668,7 @@ export function downloadFile(
   base64Content: string,
   action: "download" | "open" | "open_blank" = "download",
 ): void {
-  if (!mimeType.startsWith("application/")) {
+  if (!mimeType.includes("/")) {
     mimeType = `application/${mimeType}`;
   }
   const blob = base64ToBlob(base64Content, mimeType);
