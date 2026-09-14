@@ -45,10 +45,10 @@ export function isNumber(value: any): value is number {
 }
 
 /**
- * Nếu giá trị của `value` không phải là null hoặc undefined thì lấy, ngược lại trả về `defaultValue`.
- * @note Sử dụng thay cho cú pháp `??`. Nếu TS3.7 trở lên thì không cần dùng.
- * @param value Giá trị cần kiểm tra
- * @param defaultValue Giá trị mặc định trả về nếu `value` là null hoặc undefined
+ * Returns `value` if it is neither null nor undefined, otherwise returns `defaultValue`.
+ * @note Use this instead of the `??` syntax on TS versions below 3.7, where `??` is unavailable.
+ * @param value Value to check
+ * @param defaultValue Default value returned when `value` is null or undefined
  * @global
  */
 export function nullish(value: any, defaultValue: any): any {
@@ -56,11 +56,11 @@ export function nullish(value: any, defaultValue: any): any {
 }
 
 /**
- * JSON.parse với giá trị mặc định nếu có lỗi
- * @param s giá trị JSON cần parse. `null`/`undefined` được coi là lỗi (không gọi `JSON.parse`,
- * vì `JSON.parse(null)` không throw mà trả về `null`)
- * @param defaultValue giá trị mặc định trả về nếu có lỗi khi parse, hoặc `s` là null/undefined.
- * Mặc định là null
+ * JSON.parse with a default value on error
+ * @param s JSON value to parse. `null`/`undefined` are treated as an error (`JSON.parse` is
+ * not called, since `JSON.parse(null)` does not throw and instead returns `null`)
+ * @param defaultValue Default value returned when parsing fails, or when `s` is null/undefined.
+ * Defaults to null
  * @returns any
  */
 export function jsonParse<T = any>(s: string | null | undefined, defaultValue: T): T;
@@ -116,11 +116,11 @@ export function removeNewline(value: string): string {
   return crlf2lf(value).trim().replace(/\n/g, "");
 }
 /**
- * Thêm ký tự vào đầu chuỗi cho đến khi đạt được độ dài mục tiêu
- * @param str Chuỗi gốc
- * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
- * @param padChar Ký tự dùng để thêm vào đầu chuỗi (mặc định là "0")
- * @returns Chuỗi đã được thêm ký tự vào đầu nếu cần thiết
+ * Pads the start of a string with a character until it reaches the target length
+ * @param str Original string
+ * @param targetLength Target length after padding
+ * @param padChar Character used to pad the start (defaults to "0")
+ * @returns The string padded at the start, if padding was needed
  * @global
  */
 export function padStart(str: string, targetLength: number, padChar: string = "0"): string {
@@ -135,11 +135,11 @@ export function padStart(str: string, targetLength: number, padChar: string = "0
 }
 
 /**
- * Thêm ký tự vào cuối chuỗi cho đến khi đạt được độ dài mục tiêu
- * @param str Chuỗi gốc
- * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
- * @param padChar Ký tự dùng để thêm vào cuối chuỗi (mặc định là "0")
- * @returns Chuỗi đã được thêm ký tự vào cuối nếu cần thiết
+ * Pads the end of a string with a character until it reaches the target length
+ * @param str Original string
+ * @param targetLength Target length after padding
+ * @param padChar Character used to pad the end (defaults to "0")
+ * @returns The string padded at the end, if padding was needed
  * @global
  */
 export function padEnd(str: string, targetLength: number, padChar: string = "0"): string {
