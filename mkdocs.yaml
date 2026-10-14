@@ -1,0 +1,50 @@
+site_name: "@khgtrn/lib"
+site_description: Shared TypeScript utility library
+site_url: https://khgtrn.github.io/ts-lib/
+repo_url: https://github.com/khgtrn/ts-lib
+repo_name: khgtrn/ts-lib
+edit_uri: edit/main/docs/
+exclude_docs: |
+  requirements.txt
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.sections
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - BaseEnum: base-enum.md
+  - Utility functions: func.md
+  - numberToWords: number-to-words.md
+  - round: round.md
+  - Development: development.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      check_paths: true
+
+plugins:
+  - search
