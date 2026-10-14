@@ -2,8 +2,15 @@
 
 Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.0.4]
 
+
+## [1.0.5]
+
+### Fixed
+
+- Rounding error in round()
+
+## [1.0.4]
 ### Added
 
 - `isPlainObject(value)` — type-guard for a plain object (`{}` literal or `Object.create(null)`), as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`. Used internally by `removeByKey`/`removeEmptyValue`, exported for general use.

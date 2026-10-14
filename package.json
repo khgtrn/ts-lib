@@ -1,6 +1,6 @@
 {
   "name": "@khgtrn/lib",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Library for Typescript",
   "keywords": [
     "typescript",
@@ -14,7 +14,7 @@
     "type": "git",
     "url": "git://github.com/khgtrn/ts-lib.git"
   },
-  "homepage": "https://github.com/khgtrn/ts-lib",
+  "homepage": "https://khgtrn.github.io/ts-lib/",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
