@@ -50,10 +50,10 @@ export function isNumber(value) {
     return typeof value === "number" && Number.isFinite(value);
 }
 /**
- * Nếu giá trị của `value` không phải là null hoặc undefined thì lấy, ngược lại trả về `defaultValue`.
- * @note Sử dụng thay cho cú pháp `??`. Nếu TS3.7 trở lên thì không cần dùng.
- * @param value Giá trị cần kiểm tra
- * @param defaultValue Giá trị mặc định trả về nếu `value` là null hoặc undefined
+ * Returns `value` if it is neither null nor undefined, otherwise returns `defaultValue`.
+ * @note Use this instead of the `??` syntax on TS versions below 3.7, where `??` is unavailable.
+ * @param value Value to check
+ * @param defaultValue Default value returned when `value` is null or undefined
  * @global
  */
 export function nullish(value, defaultValue) {
@@ -104,11 +104,11 @@ export function removeNewline(value) {
     return crlf2lf(value).trim().replace(/\n/g, "");
 }
 /**
- * Thêm ký tự vào đầu chuỗi cho đến khi đạt được độ dài mục tiêu
- * @param str Chuỗi gốc
- * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
- * @param padChar Ký tự dùng để thêm vào đầu chuỗi (mặc định là "0")
- * @returns Chuỗi đã được thêm ký tự vào đầu nếu cần thiết
+ * Pads the start of a string with a character until it reaches the target length
+ * @param str Original string
+ * @param targetLength Target length after padding
+ * @param padChar Character used to pad the start (defaults to "0")
+ * @returns The string padded at the start, if padding was needed
  * @global
  */
 export function padStart(str, targetLength, padChar = "0") {
@@ -121,11 +121,11 @@ export function padStart(str, targetLength, padChar = "0") {
     return padding + str;
 }
 /**
- * Thêm ký tự vào cuối chuỗi cho đến khi đạt được độ dài mục tiêu
- * @param str Chuỗi gốc
- * @param targetLength Độ dài mục tiêu sau khi thêm ký tự
- * @param padChar Ký tự dùng để thêm vào cuối chuỗi (mặc định là "0")
- * @returns Chuỗi đã được thêm ký tự vào cuối nếu cần thiết
+ * Pads the end of a string with a character until it reaches the target length
+ * @param str Original string
+ * @param targetLength Target length after padding
+ * @param padChar Character used to pad the end (defaults to "0")
+ * @returns The string padded at the end, if padding was needed
  * @global
  */
 export function padEnd(str, targetLength, padChar = "0") {
