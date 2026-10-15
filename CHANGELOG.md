@@ -1,16 +1,34 @@
 # Changelog
 
 Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+## [1.0.6] - 2026-10-15
 
+### Added
 
+- `shuffleSecure(array)` — returns a **new** shuffled array (Fisher-Yates driven by the Web Crypto CSPRNG), leaving the input untouched. Use it instead of `shuffleArray()` when the order must be unpredictable; `shuffleArray()` is unchanged (in place, `Math.random`, returns the same array reference).
+- `getObjectValue()` / `ov()`: optional `defaultValue` parameter, checked at runtime — a missing, `null`/`undefined` or wrong-kind value (different `typeof`, array vs. object, different class) returns `defaultValue`, so the result really is of type `T`. Only the top level is checked; array elements and object fields aren't inspected. A `null` default only replaces missing values.
+- `getObjectValue<T>()` / `ov<T>()`: generic return type — `T` with `defaultValue`, `T | null | undefined` without. Overloads for string/number/boolean defaults so e.g. `getObjectValue(o, "a", "")` is typed `string`, not the literal `""`. Calls without `defaultValue` behave exactly as before.
 
-## [1.0.5]
+### Security
+
+- `randomString()`: now uses the Web Crypto CSPRNG (`crypto.getRandomValues`) instead of `Math.random`, so generated strings can't be predicted. Characters are picked with rejection sampling, giving an exactly uniform distribution. Parameters are unchanged.
+
+### Fixed
+
+- `randomString()`: `specificChars` is split by code point, so emoji and other non-BMP characters are no longer cut into broken surrogate halves.
+
+### Changed
+
+- `randomString()`: the error thrown when `length` is smaller than the number of required categories has a new message.
+- Completed JSDoc `@param`/`@returns` for all functions.
+
+## [1.0.5] - 2026-10-14
 
 ### Fixed
 
 - Rounding error in round()
 
-## [1.0.4]
+## [1.0.4] - 2026-09-14
 ### Added
 
 - `isPlainObject(value)` — type-guard for a plain object (`{}` literal or `Object.create(null)`), as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`. Used internally by `removeByKey`/`removeEmptyValue`, exported for general use.
@@ -25,7 +43,7 @@ Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `toInt()`: a finite `number` input (e.g. `0`) is now truncated directly instead of being routed through `isEmpty()` first — `isEmpty(0)` is `true`, which made `toInt(0, defaultValue)` incorrectly return `defaultValue` instead of `0`.
 - `downloadFile()`: the auto-prefix check now tests for the presence of `/` instead of `startsWith("application/")`, so passing an already-full, non-`application/*` MIME type (e.g. `"image/png"`) no longer gets mangled into `"application/image/png"`.
 
-## [1.0.3]
+## [1.0.3] - 2026-09-14
 
 ### Added
 
@@ -38,13 +56,13 @@ Formatted per [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `objectValueToArray()`: switched from `for...in` to `Object.keys().map()` so it only collects the object's **own** enumerable values, no longer picking up enumerable properties inherited from the prototype chain.
 - `removeByKey()` / `removeEmptyValue()`: switched from `Object.entries`/`Object.fromEntries` (ES2017/ES2019 runtime APIs) to `Object.keys()`-based loops, consistent with the library's avoidance of newer runtime APIs elsewhere (e.g. the hand-written `padStart`/`padEnd`).
 
-## [1.0.2]
+## [1.0.2] - 2026-09-10
 
 ### Changed
 
 - `BaseEnum`: renamed the constructor's third parameter and the resulting instance field from `opts` to `opt`, and added a second type parameter — `BaseEnum<T, O = any>` — so `opt` is typed as `O` instead of a fixed `Record<string, any>`. Pass `O` explicitly when extending (e.g. `BaseEnum<number, { icon: string }>`) to get accurate type hints on `opt`.
 
-## [1.0.0]
+## [1.0.0] - 2026-09-10
 
 ### Added
 

@@ -11,6 +11,11 @@ const enTens = [
   "", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
 ];
 
+/**
+ * Spells out a single 0-999 group in English, e.g. `305` -> `"three hundred five"`.
+ * @param n - Group value, `1`-`999`.
+ * @returns The group in words.
+ */
 function convertGroupEn(n: number): string {
   const hundredsDigit = Math.floor(n / 100);
   const remainder = n % 100;
@@ -39,6 +44,13 @@ const viOnes = [
   "không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín",
 ];
 
+/**
+ * Spells out a single 0-999 group in Vietnamese, e.g. `105` -> `"một trăm linh năm"`.
+ * @param n - Group value, `1`-`999`.
+ * @param isLeadingGroup - `true` for the most significant non-zero group; other
+ * groups read a zero hundreds digit explicitly ("không trăm").
+ * @returns The group in words.
+ */
 function convertGroupVi(n: number, isLeadingGroup: boolean): string {
   const hundredsDigit = Math.floor(n / 100);
   const remainder = n % 100;

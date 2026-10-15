@@ -3,6 +3,10 @@
  * notation, avoiding the floating-point error of multiplying by a power of 10
  * (e.g. `1.005 * 100` is `100.49999999999999`, but `Number("1.005e2")` is
  * `100.5`).
+ * @param value - Number whose decimal point is shifted.
+ * @param exponent - Number of places to shift: positive moves the point
+ * right (multiplies by `10^exponent`), negative moves it left.
+ * @returns `value * 10^exponent`, computed without floating-point drift.
  */
 function shift(value: number, exponent: number): number {
   const [mantissa, exp = "0"] = String(value).split("e");

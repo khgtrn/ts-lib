@@ -26,7 +26,7 @@ export declare function isNumber(value: any): value is number;
  * @note Use this instead of the `??` syntax on TS versions below 3.7, where `??` is unavailable.
  * @param value Value to check
  * @param defaultValue Default value returned when `value` is null or undefined
- * @global
+ * @returns `value`, or `defaultValue` if `value` is null or undefined
  */
 export declare function nullish(value: any, defaultValue: any): any;
 /**
@@ -35,7 +35,7 @@ export declare function nullish(value: any, defaultValue: any): any;
  * not called, since `JSON.parse(null)` does not throw and instead returns `null`)
  * @param defaultValue Default value returned when parsing fails, or when `s` is null/undefined.
  * Defaults to null
- * @returns any
+ * @returns The parsed value, or `defaultValue` if parsing fails or `s` is null/undefined
  */
 export declare function jsonParse<T = any>(s: string | null | undefined, defaultValue: T): T;
 export declare function jsonParse<T = any>(s: string | null | undefined, defaultValue?: null): T | null;
@@ -66,7 +66,6 @@ export declare function removeNewline(value: string): string;
  * @param targetLength Target length after padding
  * @param padChar Character used to pad the start (defaults to "0")
  * @returns The string padded at the start, if padding was needed
- * @global
  */
 export declare function padStart(str: string, targetLength: number, padChar?: string): string;
 /**
@@ -75,7 +74,6 @@ export declare function padStart(str: string, targetLength: number, padChar?: st
  * @param targetLength Target length after padding
  * @param padChar Character used to pad the end (defaults to "0")
  * @returns The string padded at the end, if padding was needed
- * @global
  */
 export declare function padEnd(str: string, targetLength: number, padChar?: string): string;
 /**
@@ -84,6 +82,14 @@ export declare function padEnd(str: string, targetLength: number, padChar?: stri
  * @returns The same array reference, shuffled.
  */
 export declare function shuffleArray(array: any[]): any[];
+/**
+ * Returns a shuffled copy of an array using Fisher-Yates driven by the Web
+ * Crypto CSPRNG, so the resulting order is unpredictable (unlike
+ * {@link shuffleArray}, which uses `Math.random`).
+ * @param array - Source array (not mutated).
+ * @returns A new array with the same elements in random order.
+ */
+export declare function shuffleSecure<T>(array: T[]): T[];
 /**
  * Collects an object's own enumerable values into an array.
  * @param obj - Source object. `null`/`undefined` yields an empty array.
@@ -103,6 +109,8 @@ export declare function groupBy(list: any, fn: (item: any) => any): any[];
 /**
  * Checks whether `value` is a plain object (`{}` literal or `Object.create(null)`),
  * as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`.
+ * @param value - Value to check.
+ * @returns `true` if `value` is a plain object.
  */
 export declare function isPlainObject(value: unknown): value is Record<string, unknown>;
 /**
@@ -185,19 +193,40 @@ export declare function base64decode(base64: string): string;
  * TypeScript versions below 3.7 (e.g. Angular versions below 9). On newer
  * TypeScript versions, prefer optional chaining directly instead.
  *
+ * With `defaultValue`, the result is checked at runtime against the kind of
+ * `defaultValue` (see `isSameKind`): if the path is missing, resolves to
+ * `null`/`undefined`, or resolves to a value of a different kind (e.g. a
+ * string where `defaultValue` is a number), `defaultValue` is returned. The
+ * result is therefore really of type `T`, not just typed as `T`. Only the top
+ * level is checked — array elements and object fields are not inspected.
+ * A `null`/`undefined` `defaultValue` disables the check.
+ *
+ * @typeParam T - Expected type of the resolved value.
  * @param object - Source object.
  * @param path - Dot-separated property path.
- * @returns The resolved value, or `null`/`undefined` if any segment is missing.
- * @global
+ * @param defaultValue - Fallback returned when the value is missing or of a
+ * different kind; also defines the expected kind.
+ * @returns The resolved value; without `defaultValue`, `null`/`undefined` if
+ * any segment is missing (not type-checked at runtime).
  */
-export declare function getObjectValue(object: null | undefined | Record<string, any>, path: string): any;
+export declare function getObjectValue(object: null | undefined | Record<string, any>, path: string, defaultValue: string): string;
+export declare function getObjectValue(object: null | undefined | Record<string, any>, path: string, defaultValue: number): number;
+export declare function getObjectValue(object: null | undefined | Record<string, any>, path: string, defaultValue: boolean): boolean;
+export declare function getObjectValue<T>(object: null | undefined | Record<string, any>, path: string, defaultValue: T): T;
+export declare function getObjectValue<T = any>(object: null | undefined | Record<string, any>, path: string): T | null | undefined;
 /**
  * Short alias for {@link getObjectValue}.
  * @param object - Source object.
  * @param path - Dot-separated property path.
- * @returns The resolved value, or `null`/`undefined` if any segment is missing.
+ * @param defaultValue - Fallback returned when the value is missing or of a
+ * different kind; also defines the expected kind.
+ * @returns See {@link getObjectValue}.
  */
-export declare function ov(object: null | undefined | Record<string, any>, path: string): any;
+export declare function ov(object: null | undefined | Record<string, any>, path: string, defaultValue: string): string;
+export declare function ov(object: null | undefined | Record<string, any>, path: string, defaultValue: number): number;
+export declare function ov(object: null | undefined | Record<string, any>, path: string, defaultValue: boolean): boolean;
+export declare function ov<T>(object: null | undefined | Record<string, any>, path: string, defaultValue: T): T;
+export declare function ov<T = any>(object: null | undefined | Record<string, any>, path: string): T | null | undefined;
 /**
  * Converts a value to an integer, similar to `parseInt`/`Number` but with an
  * explicit fallback for empty values (see {@link isEmpty}).

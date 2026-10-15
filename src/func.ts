@@ -1,3 +1,58 @@
+const UINT32_RANGE = 0x100000000;
+
+/**
+ * Creates a generator of uniformly distributed integers in `[0, bound)` backed
+ * by the Web Crypto CSPRNG. Random words are fetched in batches of `batchSize`
+ * to amortize `crypto.getRandomValues` calls; the buffer lives only inside the
+ * returned closure (never shared across calls) and is zeroed once consumed.
+ * Uses rejection sampling against 2^32 so every value is exactly equiprobable.
+ * @param batchSize - Number of 32-bit words fetched per `getRandomValues` call (capped at 16384, the Web Crypto 64 KiB limit).
+ * @returns A function `(bound) => number` returning a uniform integer in
+ * `[0, bound)`; throws a `RangeError` if `bound` is not an integer in `[1, 2^32]`.
+ */
+function createSecureRandomInt(batchSize: number): (bound: number) => number {
+  const buf = new Uint32Array(Math.min(Math.max(batchSize, 1), 16384));
+  let pos = buf.length;
+
+  return (bound: number): number => {
+    if (!Number.isInteger(bound) || bound < 1 || bound > UINT32_RANGE) {
+      throw new RangeError(`bound must be an integer in [1, 2^32], got ${bound}`);
+    }
+    // Largest multiple of `bound` that fits in 2^32; values at or above it are rejected
+    const limit = UINT32_RANGE - (UINT32_RANGE % bound);
+    let r: number;
+    do {
+      if (pos >= buf.length) {
+        crypto.getRandomValues(buf);
+        pos = 0;
+      }
+      r = buf[pos]!;
+      buf[pos++] = 0;
+    } while (r >= limit);
+    return r % bound;
+  };
+}
+
+/**
+ * Checks at runtime that `value` has the same kind of type as `sample`:
+ * same `typeof`, array vs. non-array, plain object vs. class instance
+ * (e.g. a `Date` sample requires a `Date` or subclass value). Only the top level is
+ * checked — array elements and object fields are not inspected.
+ * @param value - Value to check.
+ * @param sample - Reference value whose kind `value` must match.
+ * @returns `true` if `value` is non-null and of the same kind as `sample`.
+ */
+function isSameKind(value: unknown, sample: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value !== typeof sample) return false;
+  if (typeof sample !== "object" || sample === null) return true;
+  if (Array.isArray(sample)) return Array.isArray(value);
+  if (Array.isArray(value)) return false;
+  if (isPlainObject(sample)) return isPlainObject(value);
+  // Same class or a subclass of it (prototype-based, so it can't throw on a missing `constructor`)
+  return Object.getPrototypeOf(sample).isPrototypeOf(value);
+}
+
 /**
  * Checks whether a value is considered "empty".
  *
@@ -49,7 +104,7 @@ export function isNumber(value: any): value is number {
  * @note Use this instead of the `??` syntax on TS versions below 3.7, where `??` is unavailable.
  * @param value Value to check
  * @param defaultValue Default value returned when `value` is null or undefined
- * @global
+ * @returns `value`, or `defaultValue` if `value` is null or undefined
  */
 export function nullish(value: any, defaultValue: any): any {
   return value !== null && value !== undefined ? value : defaultValue;
@@ -61,7 +116,7 @@ export function nullish(value: any, defaultValue: any): any {
  * not called, since `JSON.parse(null)` does not throw and instead returns `null`)
  * @param defaultValue Default value returned when parsing fails, or when `s` is null/undefined.
  * Defaults to null
- * @returns any
+ * @returns The parsed value, or `defaultValue` if parsing fails or `s` is null/undefined
  */
 export function jsonParse<T = any>(s: string | null | undefined, defaultValue: T): T;
 export function jsonParse<T = any>(s: string | null | undefined, defaultValue?: null): T | null;
@@ -121,7 +176,6 @@ export function removeNewline(value: string): string {
  * @param targetLength Target length after padding
  * @param padChar Character used to pad the start (defaults to "0")
  * @returns The string padded at the start, if padding was needed
- * @global
  */
 export function padStart(str: string, targetLength: number, padChar: string = "0"): string {
   str = String(str);
@@ -140,7 +194,6 @@ export function padStart(str: string, targetLength: number, padChar: string = "0
  * @param targetLength Target length after padding
  * @param padChar Character used to pad the end (defaults to "0")
  * @returns The string padded at the end, if padding was needed
- * @global
  */
 export function padEnd(str: string, targetLength: number, padChar: string = "0"): string {
   str = String(str);
@@ -166,6 +219,25 @@ export function shuffleArray(array: any[]): any[] {
   }
 
   return array;
+}
+
+/**
+ * Returns a shuffled copy of an array using Fisher-Yates driven by the Web
+ * Crypto CSPRNG, so the resulting order is unpredictable (unlike
+ * {@link shuffleArray}, which uses `Math.random`).
+ * @param array - Source array (not mutated).
+ * @returns A new array with the same elements in random order.
+ */
+export function shuffleSecure<T>(array: T[]): T[] {
+  const arr = [...array];
+  const randomInt = createSecureRandomInt(arr.length);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    const tmp = arr[i]!;
+    arr[i] = arr[j]!;
+    arr[j] = tmp;
+  }
+  return arr;
 }
 
 /**
@@ -206,6 +278,8 @@ export function groupBy(list: any, fn: (item: any) => any): any[] {
 /**
  * Checks whether `value` is a plain object (`{}` literal or `Object.create(null)`),
  * as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`.
+ * @param value - Value to check.
+ * @returns `true` if `value` is a plain object.
  */
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -329,65 +403,41 @@ export function removeEmptyValue<T = any>(
 export function randomString(
   length: number,
   opt: ("upper" | "lower" | "number" | "specific")[] = [],
-  specificChars: string = "",
+  specificChars = "",
 ): string {
-  const upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const lowerChars = "abcdefghijklmnopqrstuvwxyz";
-  const numbers = "0123456789";
-  const requiredCategories = new Set(opt);
+  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const lower = "abcdefghijklmnopqrstuvwxyz";
+  const digits = "0123456789";
 
-  // Without specificChars, "specific" can't be honored, so treat it as unset
-  if (!specificChars) {
-    requiredCategories.delete("specific");
-  }
+  const cats = new Set(opt);
+  if (!specificChars) cats.delete("specific");
 
-  if (length < requiredCategories.size) {
+  if (length < cats.size) {
     throw new Error(
-      `length (${length}) is too small to include one of each required category: ${[...requiredCategories].join(", ")}`,
+      `Length (${length}) too short: need at least ${cats.size} for ${[...cats].join(", ")}`,
     );
   }
 
-  let result = [];
-  let allChars = "";
+  // Build the character groups (split by code point so emoji / surrogate pairs are never cut in half)
+  const groups: string[][] = [];
+  if (cats.has("upper")) groups.push([...upper]);
+  if (cats.has("lower")) groups.push([...lower]);
+  if (cats.has("number")) groups.push([...digits]);
+  if (cats.has("specific")) groups.push([...specificChars]);
 
-  const randomOneChar = (chars: string): string =>
-    chars.charAt(Math.floor(Math.random() * chars.length));
+  const pool = groups.length ? ([] as string[]).concat(...groups) : [...upper, ...lower, ...digits];
+  const randomInt = createSecureRandomInt(Math.max(length, 0));
 
-  if (requiredCategories.has("upper")) {
-    allChars += upperChars;
-    // Guarantee at least one uppercase letter
-    result.push(randomOneChar(upperChars));
-  }
-  if (requiredCategories.has("lower")) {
-    allChars += lowerChars;
-    // Guarantee at least one lowercase letter
-    result.push(randomOneChar(lowerChars));
-  }
-  if (requiredCategories.has("number")) {
-    allChars += numbers;
-    // Guarantee at least one digit
-    result.push(randomOneChar(numbers));
-  }
-  if (requiredCategories.has("specific")) {
-    allChars += specificChars;
-    // Guarantee at least one character from the custom set
-    result.push(randomOneChar(specificChars));
-  }
-
-  // If no category applied (e.g. opt is empty, or only "specific" was
-  // requested without specificChars), fall back to alphanumeric so the
-  // result isn't silently empty.
-  if (!allChars) {
-    allChars = upperChars + lowerChars + numbers;
-  }
+  // Guarantee at least one character from each required group
+  const result = groups.map((g) => g[randomInt(g.length)]!);
 
   // Fill up the remaining characters to reach the requested length
-  for (let i = result.length; i < length; i++) {
-    result.push(randomOneChar(allChars));
+  while (result.length < length) {
+    result.push(pool[randomInt(pool.length)]!);
   }
 
   // Shuffle so the guaranteed characters aren't always at the front
-  return shuffleArray(result).join("");
+  return shuffleSecure(result).join("");
 }
 
 /**
@@ -491,29 +541,106 @@ export function base64decode(base64: string): string {
  * TypeScript versions below 3.7 (e.g. Angular versions below 9). On newer
  * TypeScript versions, prefer optional chaining directly instead.
  *
+ * With `defaultValue`, the result is checked at runtime against the kind of
+ * `defaultValue` (see `isSameKind`): if the path is missing, resolves to
+ * `null`/`undefined`, or resolves to a value of a different kind (e.g. a
+ * string where `defaultValue` is a number), `defaultValue` is returned. The
+ * result is therefore really of type `T`, not just typed as `T`. Only the top
+ * level is checked — array elements and object fields are not inspected.
+ * A `null`/`undefined` `defaultValue` disables the check.
+ *
+ * @typeParam T - Expected type of the resolved value.
  * @param object - Source object.
  * @param path - Dot-separated property path.
- * @returns The resolved value, or `null`/`undefined` if any segment is missing.
- * @global
+ * @param defaultValue - Fallback returned when the value is missing or of a
+ * different kind; also defines the expected kind.
+ * @returns The resolved value; without `defaultValue`, `null`/`undefined` if
+ * any segment is missing (not type-checked at runtime).
  */
-export function getObjectValue(object: null | undefined | Record<string, any>, path: string): any {
-  if (object === null || object === undefined) return null;
-  return path
-    .split(".")
-    .reduce(
-      (acc: any, part: string): any => (acc === null || acc === undefined ? acc : acc[part]),
-      object,
-    );
+export function getObjectValue(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: string,
+): string;
+export function getObjectValue(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: number,
+): number;
+export function getObjectValue(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: boolean,
+): boolean;
+export function getObjectValue<T>(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: T,
+): T;
+export function getObjectValue<T = any>(
+  object: null | undefined | Record<string, any>,
+  path: string,
+): T | null | undefined;
+export function getObjectValue(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue?: any,
+): any {
+  const value =
+    object === null || object === undefined
+      ? null
+      : path
+          .split(".")
+          .reduce(
+            (acc: any, part: string): any => (acc === null || acc === undefined ? acc : acc[part]),
+            object,
+          );
+
+  // No default: unchanged legacy behavior (null/undefined when missing)
+  if (defaultValue === undefined) return value;
+  // A null default carries no type to check against: only replace missing values
+  if (defaultValue === null) return value === undefined ? null : value;
+  return isSameKind(value, defaultValue) ? value : defaultValue;
 }
 
 /**
  * Short alias for {@link getObjectValue}.
  * @param object - Source object.
  * @param path - Dot-separated property path.
- * @returns The resolved value, or `null`/`undefined` if any segment is missing.
+ * @param defaultValue - Fallback returned when the value is missing or of a
+ * different kind; also defines the expected kind.
+ * @returns See {@link getObjectValue}.
  */
-export function ov(object: null | undefined | Record<string, any>, path: string): any {
-  return getObjectValue(object, path);
+export function ov(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: string,
+): string;
+export function ov(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: number,
+): number;
+export function ov(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: boolean,
+): boolean;
+export function ov<T>(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue: T,
+): T;
+export function ov<T = any>(
+  object: null | undefined | Record<string, any>,
+  path: string,
+): T | null | undefined;
+export function ov(
+  object: null | undefined | Record<string, any>,
+  path: string,
+  defaultValue?: any,
+): any {
+  return getObjectValue(object, path, defaultValue);
 }
 
 /**

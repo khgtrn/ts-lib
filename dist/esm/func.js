@@ -1,3 +1,60 @@
+const UINT32_RANGE = 0x100000000;
+/**
+ * Creates a generator of uniformly distributed integers in `[0, bound)` backed
+ * by the Web Crypto CSPRNG. Random words are fetched in batches of `batchSize`
+ * to amortize `crypto.getRandomValues` calls; the buffer lives only inside the
+ * returned closure (never shared across calls) and is zeroed once consumed.
+ * Uses rejection sampling against 2^32 so every value is exactly equiprobable.
+ * @param batchSize - Number of 32-bit words fetched per `getRandomValues` call (capped at 16384, the Web Crypto 64 KiB limit).
+ * @returns A function `(bound) => number` returning a uniform integer in
+ * `[0, bound)`; throws a `RangeError` if `bound` is not an integer in `[1, 2^32]`.
+ */
+function createSecureRandomInt(batchSize) {
+    const buf = new Uint32Array(Math.min(Math.max(batchSize, 1), 16384));
+    let pos = buf.length;
+    return (bound) => {
+        if (!Number.isInteger(bound) || bound < 1 || bound > UINT32_RANGE) {
+            throw new RangeError(`bound must be an integer in [1, 2^32], got ${bound}`);
+        }
+        // Largest multiple of `bound` that fits in 2^32; values at or above it are rejected
+        const limit = UINT32_RANGE - (UINT32_RANGE % bound);
+        let r;
+        do {
+            if (pos >= buf.length) {
+                crypto.getRandomValues(buf);
+                pos = 0;
+            }
+            r = buf[pos];
+            buf[pos++] = 0;
+        } while (r >= limit);
+        return r % bound;
+    };
+}
+/**
+ * Checks at runtime that `value` has the same kind of type as `sample`:
+ * same `typeof`, array vs. non-array, plain object vs. class instance
+ * (e.g. a `Date` sample requires a `Date` or subclass value). Only the top level is
+ * checked — array elements and object fields are not inspected.
+ * @param value - Value to check.
+ * @param sample - Reference value whose kind `value` must match.
+ * @returns `true` if `value` is non-null and of the same kind as `sample`.
+ */
+function isSameKind(value, sample) {
+    if (value === null || value === undefined)
+        return false;
+    if (typeof value !== typeof sample)
+        return false;
+    if (typeof sample !== "object" || sample === null)
+        return true;
+    if (Array.isArray(sample))
+        return Array.isArray(value);
+    if (Array.isArray(value))
+        return false;
+    if (isPlainObject(sample))
+        return isPlainObject(value);
+    // Same class or a subclass of it (prototype-based, so it can't throw on a missing `constructor`)
+    return Object.getPrototypeOf(sample).isPrototypeOf(value);
+}
 /**
  * Checks whether a value is considered "empty".
  *
@@ -54,7 +111,7 @@ export function isNumber(value) {
  * @note Use this instead of the `??` syntax on TS versions below 3.7, where `??` is unavailable.
  * @param value Value to check
  * @param defaultValue Default value returned when `value` is null or undefined
- * @global
+ * @returns `value`, or `defaultValue` if `value` is null or undefined
  */
 export function nullish(value, defaultValue) {
     return value !== null && value !== undefined ? value : defaultValue;
@@ -109,7 +166,6 @@ export function removeNewline(value) {
  * @param targetLength Target length after padding
  * @param padChar Character used to pad the start (defaults to "0")
  * @returns The string padded at the start, if padding was needed
- * @global
  */
 export function padStart(str, targetLength, padChar = "0") {
     str = String(str);
@@ -126,7 +182,6 @@ export function padStart(str, targetLength, padChar = "0") {
  * @param targetLength Target length after padding
  * @param padChar Character used to pad the end (defaults to "0")
  * @returns The string padded at the end, if padding was needed
- * @global
  */
 export function padEnd(str, targetLength, padChar = "0") {
     str = String(str);
@@ -149,6 +204,24 @@ export function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+}
+/**
+ * Returns a shuffled copy of an array using Fisher-Yates driven by the Web
+ * Crypto CSPRNG, so the resulting order is unpredictable (unlike
+ * {@link shuffleArray}, which uses `Math.random`).
+ * @param array - Source array (not mutated).
+ * @returns A new array with the same elements in random order.
+ */
+export function shuffleSecure(array) {
+    const arr = [...array];
+    const randomInt = createSecureRandomInt(arr.length);
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = randomInt(i + 1);
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+    }
+    return arr;
 }
 /**
  * Collects an object's own enumerable values into an array.
@@ -187,6 +260,8 @@ export function groupBy(list, fn) {
 /**
  * Checks whether `value` is a plain object (`{}` literal or `Object.create(null)`),
  * as opposed to an array or a special built-in like `Date`/`Map`/`Set`/`RegExp`.
+ * @param value - Value to check.
+ * @returns `true` if `value` is a plain object.
  */
 export function isPlainObject(value) {
     if (typeof value !== "object" || value === null || Array.isArray(value))
@@ -284,52 +359,35 @@ export function removeEmptyValue(objectOrArray, options = {}) {
  * since the "at least one of each" guarantee couldn't fit otherwise.
  */
 export function randomString(length, opt = [], specificChars = "") {
-    const upperChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lowerChars = "abcdefghijklmnopqrstuvwxyz";
-    const numbers = "0123456789";
-    const requiredCategories = new Set(opt);
-    // Without specificChars, "specific" can't be honored, so treat it as unset
-    if (!specificChars) {
-        requiredCategories.delete("specific");
+    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lower = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const cats = new Set(opt);
+    if (!specificChars)
+        cats.delete("specific");
+    if (length < cats.size) {
+        throw new Error(`Length (${length}) too short: need at least ${cats.size} for ${[...cats].join(", ")}`);
     }
-    if (length < requiredCategories.size) {
-        throw new Error(`length (${length}) is too small to include one of each required category: ${[...requiredCategories].join(", ")}`);
-    }
-    let result = [];
-    let allChars = "";
-    const randomOneChar = (chars) => chars.charAt(Math.floor(Math.random() * chars.length));
-    if (requiredCategories.has("upper")) {
-        allChars += upperChars;
-        // Guarantee at least one uppercase letter
-        result.push(randomOneChar(upperChars));
-    }
-    if (requiredCategories.has("lower")) {
-        allChars += lowerChars;
-        // Guarantee at least one lowercase letter
-        result.push(randomOneChar(lowerChars));
-    }
-    if (requiredCategories.has("number")) {
-        allChars += numbers;
-        // Guarantee at least one digit
-        result.push(randomOneChar(numbers));
-    }
-    if (requiredCategories.has("specific")) {
-        allChars += specificChars;
-        // Guarantee at least one character from the custom set
-        result.push(randomOneChar(specificChars));
-    }
-    // If no category applied (e.g. opt is empty, or only "specific" was
-    // requested without specificChars), fall back to alphanumeric so the
-    // result isn't silently empty.
-    if (!allChars) {
-        allChars = upperChars + lowerChars + numbers;
-    }
+    // Build the character groups (split by code point so emoji / surrogate pairs are never cut in half)
+    const groups = [];
+    if (cats.has("upper"))
+        groups.push([...upper]);
+    if (cats.has("lower"))
+        groups.push([...lower]);
+    if (cats.has("number"))
+        groups.push([...digits]);
+    if (cats.has("specific"))
+        groups.push([...specificChars]);
+    const pool = groups.length ? [].concat(...groups) : [...upper, ...lower, ...digits];
+    const randomInt = createSecureRandomInt(Math.max(length, 0));
+    // Guarantee at least one character from each required group
+    const result = groups.map((g) => g[randomInt(g.length)]);
     // Fill up the remaining characters to reach the requested length
-    for (let i = result.length; i < length; i++) {
-        result.push(randomOneChar(allChars));
+    while (result.length < length) {
+        result.push(pool[randomInt(pool.length)]);
     }
     // Shuffle so the guaranteed characters aren't always at the front
-    return shuffleArray(result).join("");
+    return shuffleSecure(result).join("");
 }
 /**
  * Formats a byte value (0-255) as a zero-padded, 2-digit lowercase hex string.
@@ -415,34 +473,22 @@ export function base64encode(str) {
 export function base64decode(base64) {
     return new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
 }
-/**
- * Reads a nested property from an object using a dot-separated path.
- * Example: `getObjectValue(user, 'abc.def')` returns `user.abc.def`.
- *
- * Equivalent to optional chaining (`object?.abc?.def`), for use on
- * TypeScript versions below 3.7 (e.g. Angular versions below 9). On newer
- * TypeScript versions, prefer optional chaining directly instead.
- *
- * @param object - Source object.
- * @param path - Dot-separated property path.
- * @returns The resolved value, or `null`/`undefined` if any segment is missing.
- * @global
- */
-export function getObjectValue(object, path) {
-    if (object === null || object === undefined)
-        return null;
-    return path
-        .split(".")
-        .reduce((acc, part) => (acc === null || acc === undefined ? acc : acc[part]), object);
+export function getObjectValue(object, path, defaultValue) {
+    const value = object === null || object === undefined
+        ? null
+        : path
+            .split(".")
+            .reduce((acc, part) => (acc === null || acc === undefined ? acc : acc[part]), object);
+    // No default: unchanged legacy behavior (null/undefined when missing)
+    if (defaultValue === undefined)
+        return value;
+    // A null default carries no type to check against: only replace missing values
+    if (defaultValue === null)
+        return value === undefined ? null : value;
+    return isSameKind(value, defaultValue) ? value : defaultValue;
 }
-/**
- * Short alias for {@link getObjectValue}.
- * @param object - Source object.
- * @param path - Dot-separated property path.
- * @returns The resolved value, or `null`/`undefined` if any segment is missing.
- */
-export function ov(object, path) {
-    return getObjectValue(object, path);
+export function ov(object, path, defaultValue) {
+    return getObjectValue(object, path, defaultValue);
 }
 /**
  * Converts a value to an integer, similar to `parseInt`/`Number` but with an
